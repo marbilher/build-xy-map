@@ -31,9 +31,6 @@ class App extends React.Component {
     let cols = screenSize/blockSize;
     let rows = screenSize/blockSize;
 
-    let saved_i = -1;
-    let saved_j = -1;
-
     let availableBlocks = [];
     let existingBlocks = [];
     let unavailableBlocks = [];
@@ -72,6 +69,10 @@ class App extends React.Component {
           blockMatrix[i][j] = sketch.color(255)
         }
       }
+      availableBlocks = []
+      existingBlocks = []
+      sketch.writeNewBlock(15, 15)
+
     }
 
     sketch.renderBlocks = () => {
@@ -81,6 +82,9 @@ class App extends React.Component {
       existingBlocks.forEach(index => {
         blockMatrix[index.x][index.y] = sketch.color(0)
       })
+      console.log('Available after render')
+      console.log(availableBlocks)
+
     }
 
     sketch.findBlockByCoords = (blockArray, x, y) => {
@@ -113,12 +117,12 @@ class App extends React.Component {
       } else {
         availableBlocks.push({ x : x_coordinate, y : y_coordinate - 1})
       }
-      sketch.deleteBlockByCoords(availableBlocks, x_coordinate, y_coordinate)
+      sketch.deleteFromAvailableByCoords(x_coordinate, y_coordinate)
       sketch.renderBlocks()
     }
 
-    sketch.deleteBlockByCoords = (blockArray, x, y) => {
-      blockArray = blockArray.filter(value => {
+    sketch.deleteFromAvailableByCoords = (x, y) => {
+      availableBlocks.filter(value => {
         if(value.x != x && value.y != y) {
           return value
         }
@@ -130,6 +134,14 @@ class App extends React.Component {
       console.log('Listing existing blocks')
       existingBlocks.forEach(index => console.log("existing block: " + index.x + ' ' + index.y))
       sketch.getBlockNeighbors(x_coordinate, y_coordinate)
+
+    }
+
+    sketch.userAddBlock = () => {
+      let randomAvailable = Math.floor(Math.random() * Math.floor(availableBlocks.length));
+      console.log(randomAvailable)
+      console.log(availableBlocks)
+      sketch.writeNewBlock(availableBlocks[randomAvailable.x], availableBlocks[randomAvailable.y])
 
     }
 
@@ -170,7 +182,7 @@ class App extends React.Component {
         <div className="row justify-content-center d-flex align-items-center min-vh-100">
           <div className="col col-lg-3 btn-group-vertical" role="group" style={{height: "25%"}}>
             <button type="button" className="btn btn-primary" onClick={() => this.myP5.clearGrid()}> Clear </button>
-            <button type="button" className="btn btn-secondary" > Update </button>
+            <button type="button" className="btn btn-secondary" onClick={() => this.myP5.userAddBlock()}> Add block </button>
           </div>
             <div className="col-lg-9" ref={this.myRef}>
 
