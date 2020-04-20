@@ -6,22 +6,7 @@ class App extends React.Component {
   constructor(props) {
     super(props)
     this.myRef = React.createRef()
-    // this.writeNewBlock = this.writeNewBlock.bind(this)
-
-
-    // this.availableBlocks = [];
-    // this.existingBlocks = [];
-    // this.unavailableBlocks = [];
   }
-  //draw availableBlocks yellow
-
-  //getAvailableBlocks
-  //find all neighbors of existing blocks
-  //subtract unavailableBlocks
-  //subtract outOfBoundsBlocks (not required in database algo since will be infinite)
-  //
-
-
   
   Sketch = (sketch) => {
     
@@ -71,6 +56,7 @@ class App extends React.Component {
       }
       availableBlocks = []
       existingBlocks = []
+      unavailableBlocks = []
       sketch.writeNewBlock(15, 15)
 
     }
@@ -82,9 +68,9 @@ class App extends React.Component {
       existingBlocks.forEach(index => {
         blockMatrix[index.x][index.y] = sketch.color(0)
       })
-      console.log('Available after render')
-      console.log(availableBlocks)
-
+      unavailableBlocks.forEach(index => {
+        blockMatrix[index.x][index.y] = sketch.color(0, 0, 255)
+      })
     }
 
     sketch.findBlockByCoords = (blockArray, x, y) => {
@@ -96,23 +82,31 @@ class App extends React.Component {
       }
     }
 
-    sketch.getBlockNeighbors = (x_coordinate, y_coordinate) => {
-      if(sketch.findBlockByCoords(existingBlocks, x_coordinate + 1, y_coordinate) || sketch.findBlockByCoords(availableBlocks, x_coordinate + 1, y_coordinate)) {
+    sketch.getBlockNeighbors = (x_coordinate, y_coordinate) => {  //Can allow overloads and callbacks here to increase versatility
+      if(sketch.findBlockByCoords(existingBlocks, x_coordinate + 1, y_coordinate) 
+          || sketch.findBlockByCoords(availableBlocks, x_coordinate + 1, y_coordinate)
+          || sketch.findBlockByCoords(unavailableBlocks, x_coordinate + 1, y_coordinate)) {
         console.log('found neighbor right') 
       } else {
         availableBlocks.push({ x : x_coordinate + 1, y : y_coordinate })
       }
-      if(sketch.findBlockByCoords(existingBlocks, x_coordinate - 1, y_coordinate) || sketch.findBlockByCoords(availableBlocks, x_coordinate - 1, y_coordinate)) {
+      if(sketch.findBlockByCoords(existingBlocks, x_coordinate - 1, y_coordinate) 
+          || sketch.findBlockByCoords(availableBlocks, x_coordinate - 1, y_coordinate)
+          || sketch.findBlockByCoords(unavailableBlocks, x_coordinate - 1, y_coordinate)) {
         console.log('found neighbor left') 
       } else {
         availableBlocks.push({ x : x_coordinate - 1, y : y_coordinate })
       }
-      if(sketch.findBlockByCoords(existingBlocks, x_coordinate, y_coordinate + 1) || sketch.findBlockByCoords(availableBlocks, x_coordinate, y_coordinate + 1)) {
+      if(sketch.findBlockByCoords(existingBlocks, x_coordinate, y_coordinate + 1) 
+          || sketch.findBlockByCoords(availableBlocks, x_coordinate, y_coordinate + 1)
+          || sketch.findBlockByCoords(unavailableBlocks, x_coordinate, y_coordinate + 1)) {
         console.log('found neighbor below') 
       } else {
         availableBlocks.push({ x : x_coordinate, y : y_coordinate + 1})
       }
-      if(sketch.findBlockByCoords(existingBlocks, x_coordinate, y_coordinate - 1) || sketch.findBlockByCoords(availableBlocks, x_coordinate, y_coordinate - 1)) {
+      if(sketch.findBlockByCoords(existingBlocks, x_coordinate, y_coordinate - 1) 
+          || sketch.findBlockByCoords(availableBlocks, x_coordinate, y_coordinate - 1)
+          || sketch.findBlockByCoords(unavailableBlocks, x_coordinate, y_coordinate - 1)) {
         console.log('found neighbor above') 
       } else {
         availableBlocks.push({ x : x_coordinate, y : y_coordinate - 1})
@@ -121,28 +115,41 @@ class App extends React.Component {
       sketch.renderBlocks()
     }
 
-    sketch.deleteFromAvailableByCoords = (x, y) => {
-      availableBlocks.filter(value => {
-        if(value.x != x && value.y != y) {
-          return value
+    sketch.deleteFromAvailableByCoords = (x_coordinate, y_coordinate) => {
+      for(let i = 0; i < availableBlocks.length; i++) {
+        if(availableBlocks[i].x == x_coordinate && availableBlocks[i].y == y_coordinate) {
+          availableBlocks.splice(i, 1)
         }
-      })
+      }
     }
+
 
     sketch.writeNewBlock = (x_coordinate, y_coordinate) => {
       existingBlocks.push({ x : x_coordinate, y : y_coordinate });
-      console.log('Listing existing blocks')
-      existingBlocks.forEach(index => console.log("existing block: " + index.x + ' ' + index.y))
       sketch.getBlockNeighbors(x_coordinate, y_coordinate)
 
     }
 
-    sketch.userAddBlock = () => {
-      let randomAvailable = Math.floor(Math.random() * Math.floor(availableBlocks.length));
-      console.log(randomAvailable)
-      console.log(availableBlocks)
-      sketch.writeNewBlock(availableBlocks[randomAvailable.x], availableBlocks[randomAvailable.y])
+    sketch.writeNewUnavailable = (x_coordinate, y_coordinate) => {
+      unavailableBlocks.push({ x : x_coordinate, y : y_coordinate });
+      sketch.deleteFromAvailableByCoords(x_coordinate, y_coordinate);
+      sketch.renderBlocks()
+    }
 
+    sketch.userAddUnavailable = (numUnavail) => {
+      while(numUnavail > 0) {
+        let randomnUnavailable = Math.floor(Math.random() * Math.floor(availableBlocks.length));
+        sketch.writeNewUnavailable(availableBlocks[randomnUnavailable].x, availableBlocks[randomnUnavailable].y)
+        numUnavail--
+        }
+    }
+
+    sketch.userAddBlock = (numBlocks) => {
+      while(numBlocks > 0) {
+      let randomAvailable = Math.floor(Math.random() * Math.floor(availableBlocks.length));
+      sketch.writeNewBlock(availableBlocks[randomAvailable].x, availableBlocks[randomAvailable].y)
+      numBlocks--;
+      }
     }
 
       sketch.mousePressed = () => {
@@ -151,24 +158,13 @@ class App extends React.Component {
             let x = i*blockSize;
             let y = j*blockSize;
             if (sketch.mouseX > x && sketch.mouseX < (x + blockSize) && sketch.mouseY > y && sketch.mouseY < (y + blockSize)) {
-              console.log('i=' + j + ' j= ' + i)
-              availableBlocks.forEach(index => console.log("available block: " + index.x + ' ' + index.y))
-
               if(availableBlocks.some(item => item.x == i && item.y == j)) {
                 sketch.writeNewBlock(i, j)
-                // if (j>0) blockMatrix[i][j-1]= sketch.color(255, 255, 0); //these lines create game like behavior
-                // if (j<rows-1) blockMatrix[i][j+1]= sketch.color(255, 255, 0);
-                // if (i>0) blockMatrix[i-1][j]= sketch.color(255, 255, 0);
-                // if (i<cols-1) blockMatrix[i+1][j]= sketch.color(255, 255, 0);
               }
             }
           }
         }
       }
-
-
-
-
     };
 
 
@@ -182,7 +178,9 @@ class App extends React.Component {
         <div className="row justify-content-center d-flex align-items-center min-vh-100">
           <div className="col col-lg-3 btn-group-vertical" role="group" style={{height: "25%"}}>
             <button type="button" className="btn btn-primary" onClick={() => this.myP5.clearGrid()}> Clear </button>
-            <button type="button" className="btn btn-secondary" onClick={() => this.myP5.userAddBlock()}> Add block </button>
+            <button type="button" className="btn btn-secondary" onClick={() => this.myP5.userAddBlock(5)}> Add block </button>
+            <button type="button" className="btn btn-warning" onClick={() => this.myP5.userAddUnavailable(5)}> Add unavailable </button>
+
           </div>
             <div className="col-lg-9" ref={this.myRef}>
 
